@@ -53,11 +53,8 @@ static void handlePacket(u_char *user, const struct pcap_pkthdr *h, const u_char
     if(ctx->minlen == 0 || h->len < ctx->minlen) ctx->minlen = h->len;
 
     // update per-mac-address counter
-    std::string sourceMacString = macToString(bytes);
-    std::string destMacString = macToString(bytes+6);
-
-    // -- Verbose flag?
-    //printf("%s, %s\n", sourceMac, destMac);
+    std::string sourceMacString = macToString(bytes+6);
+    std::string destMacString = macToString(bytes);
 
     insertOrIncrementCounter(ctx->countPerDestMac, destMacString);
     insertOrIncrementCounter(ctx->countPerSourceMac, sourceMacString);
