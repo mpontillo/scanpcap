@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <pcap/pcap.h>
 #include <inttypes.h>
+#include <string.h>
 
 #include <string>
 #include <map>
@@ -26,10 +27,10 @@
 
 struct ScanContext
 {
-    uint64_t packetCount;
-    uint64_t byteCount;
-    uint32_t maxPacketLength;
-    uint32_t minPacketLength;
+    uintmax_t packetCount;
+    uintmax_t byteCount;
+    unsigned int maxPacketLength;
+    unsigned int minPacketLength;
 
     struct timeval startTime;
     struct timeval endTime;
@@ -138,26 +139,26 @@ static inline const char* timevalToLocalTime(struct timeval* time)
 
 static void printStatistics(struct ScanContext* ctx)
 {
-    printf("%lld packets\n", ctx->packetCount);
-    printf("Max size packet: %d\n", ctx->maxPacketLength);
-    printf("Min size packet: %d\n", ctx->minPacketLength);
+    printf("%ju packets\n", ctx->packetCount);
+    printf("Max size packet: %u\n", ctx->maxPacketLength);
+    printf("Min size packet: %u\n", ctx->minPacketLength);
 
     // note: the result from asctime() has a '\n' at the end, so we truncate it
     char* localTimeString;
 
-    printf("Start time: %ld.%06d seconds (%s)\n",
-        ctx->startTime.tv_sec, ctx->startTime.tv_usec,
+    printf("Start time: %ju.%06ju seconds (%s)\n",
+        (uintmax_t) ctx->startTime.tv_sec, (uintmax_t) ctx->startTime.tv_usec,
         timevalToLocalTime(&ctx->startTime));
 
-    printf("End time: %ld.%06d seconds (%s)\n",
-        ctx->endTime.tv_sec, ctx->endTime.tv_usec,
+    printf("End time: %ju.%06ju seconds (%s)\n",
+        (uintmax_t) ctx->endTime.tv_sec, (uintmax_t) ctx->endTime.tv_usec,
         timevalToLocalTime(&ctx->endTime));
 
     long totalCaptureTime = ctx->endTime.tv_sec - ctx->startTime.tv_sec;
     printf("Total time: %ld seconds (%ld.%01ld minutes)\n",
         totalCaptureTime, totalCaptureTime / 60, totalCaptureTime % 60 * 10 / 60);
 
-    printf("Total bytes captured: %lld bytes / %lld kilobytes / %lld megabytes\n",
+    printf("Total bytes captured: %ju bytes / %ju kilobytes / %ju megabytes\n",
         ctx->byteCount,
         ctx->byteCount / 1024,
         ctx->byteCount / 1024 / 1024);
