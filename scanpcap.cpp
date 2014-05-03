@@ -122,6 +122,20 @@ static void printCountPerAddress(std::map<std::string, long> &macToCount)
     }
 }
 
+static inline const char* timevalToLocalTime(struct timeval* time)
+{
+    time_t unixTime = time->tv_sec;
+    struct tm* localTime = localtime(&unixTime);
+    char* localTimeString = asctime(localTime);
+
+    if(localTimeString)
+    {
+        localTimeString[strlen(localTimeString) - 1] = '\0';
+    }
+
+    return localTimeString ? localTimeString : "?";
+}
+
 static void printStatistics(struct ScanContext* ctx)
 {
     printf("%lld packets\n", ctx->packetCount);
@@ -131,21 +145,13 @@ static void printStatistics(struct ScanContext* ctx)
     // note: the result from asctime() has a '\n' at the end, so we truncate it
     char* localTimeString;
 
-    time_t startTime = ctx->startTime.tv_sec;
-    struct tm* startLocalTime = localtime(&startTime);
-    localTimeString = asctime(startLocalTime);
-    if(localTimeString) localTimeString[strlen(localTimeString) - 1] = '\0';
     printf("Start time: %ld.%06d seconds (%s)\n",
         ctx->startTime.tv_sec, ctx->startTime.tv_usec,
-        localTimeString ? localTimeString : "?");
+        timevalToLocalTime(&ctx->startTime));
 
-    time_t endTime = ctx->endTime.tv_sec;
-    struct tm* endLocalTime = localtime(&endTime);
-    localTimeString = asctime(startLocalTime);
-    if(localTimeString) localTimeString[strlen(localTimeString) - 1] = '\0';
     printf("End time: %ld.%06d seconds (%s)\n",
         ctx->endTime.tv_sec, ctx->endTime.tv_usec,
-        localTimeString ? localTimeString : "?");
+        timevalToLocalTime(&ctx->endTime));
 
     long totalCaptureTime = ctx->endTime.tv_sec - ctx->startTime.tv_sec;
     printf("Total time: %ld seconds (%ld.%01ld minutes)\n",
