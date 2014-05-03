@@ -142,7 +142,7 @@ static void printStatistics(struct ScanContext* ctx)
 
     long kilobits = ctx->byteCount * 8 / 1024;
     long kilobitsPerSecond = kilobits / totalCaptureTime;
-    printf("Overall capture speed: %ld Kbps\n", kilobitsPerSecond);
+    printf("Overall capture speed: %ld Kbps (%ld Mbps)\n", kilobitsPerSecond, kilobitsPerSecond / 1024);
 
     printf("\nEthernet destinations:\n");
     printCountPerAddress(ctx->packetCountPerDestMac);

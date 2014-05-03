@@ -32,6 +32,12 @@ Example Output
     73759 packets
     Max size packet: 1514
     Min size packet: 54
+    Start time: 1398903401.944119 seconds (Wed Apr 30 17:16:41 2014)
+    End time: 1398904302.403040 seconds (Wed Apr 30 17:31:42 2014)
+    Total time: 901 seconds (15.0 minutes)
+    Total bytes captured: 50217316 bytes / 49040 kilobytes / 47 megabytes
+    Overall capture speed: 435 Kbps (0 Mbps)
+
     Ethernet destinations:
        27521 00:e0:74:22:96:f3
          540 01:00:5e:00:00:57
