@@ -1,23 +1,26 @@
 scanpcap
 ========
 
-`scanpcap` is a little tool I wrote in order to brush up on C++ after many
-years of inactivity.
+`scanpcap` is a tool that scans through a packet capture file and prints
+statistics about it.
 
-It takes as an argument the name of a file in pcapng format, assumes that
+It takes as an argument the name of a file (in pcapng format), assumes that
 all the packets inside are Ethernet packets, and outputs some basic statistics
 about them, such as:
 
  - Number of packets
  - Maximum packet size
  - Minimum packet size
+ - Start, end, and elapsed time of the capture
+ - Bytes captured (includingn truncated bytes)
+ - Overall capture speed (bits captured divided by capture interval in seconds)
  - Count per Ethernet source address
  - Count per Ethernet destination address
 
 Building
 ========
 
-`scanpcap` includes a CMake build file. To build, ensure cmake is installed.
+`scanpcap` includes a CMake build file. To build, ensure `cmake` is installed.
 Then do something like this:
 
     $ mkdir build
@@ -82,3 +85,8 @@ Example Output
           11 b8:e8:56:a2:c6:d2
           39 c4:85:08:f2:be:f3
           45 dc:9b:9c:1a:24:de
+
+License
+=======
+
+`scanpcap` is licensed under the Apache 2.0 license.
