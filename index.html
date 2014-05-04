@@ -4,11 +4,11 @@
   <head>
     <meta charset='utf-8' />
     <meta http-equiv="X-UA-Compatible" content="chrome=1" />
-    <meta name="description" content="Scanpcap : " />
+    <meta name="description" content="scanpcap : " />
 
     <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
 
-    <title>Scanpcap</title>
+    <title>scanpcap</title>
   </head>
 
   <body>
@@ -18,7 +18,7 @@
         <header class="inner">
           <a id="forkme_banner" href="https://github.com/pontillo/scanpcap">View on GitHub</a>
 
-          <h1 id="project_title">Scanpcap</h1>
+          <h1 id="project_title">scanpcap</h1>
           <h2 id="project_tagline"></h2>
 
             <section id="downloads">
@@ -31,13 +31,10 @@
     <!-- MAIN CONTENT -->
     <div id="main_content_wrap" class="outer">
       <section id="main_content" class="inner">
-        <h1>
-<a name="scanpcap" class="anchor" href="#scanpcap"><span class="octicon octicon-link"></span></a>scanpcap</h1>
+        <p><code>scanpcap</code> is a tool that scans through a packet capture file and prints
+statistics about it.</p>
 
-<p><code>scanpcap</code> is a little tool I wrote in order to brush up on C++ after many
-years of inactivity.</p>
-
-<p>It takes as an argument the name of a file in pcapng format, assumes that
+<p>It takes as an argument the name of a file (in pcapng format), assumes that
 all the packets inside are Ethernet packets, and outputs some basic statistics
 about them, such as:</p>
 
@@ -45,12 +42,15 @@ about them, such as:</p>
 <li>Number of packets</li>
 <li>Maximum packet size</li>
 <li>Minimum packet size</li>
+<li>Start, end, and elapsed time of the capture</li>
+<li>Bytes captured (includingn truncated bytes)</li>
+<li>Overall capture speed (bits captured divided by capture interval in seconds)</li>
 <li>Count per Ethernet source address</li>
 <li>Count per Ethernet destination address</li>
 </ul><h1>
 <a name="building" class="anchor" href="#building"><span class="octicon octicon-link"></span></a>Building</h1>
 
-<p><code>scanpcap</code> includes a CMake build file. To build, ensure cmake is installed.
+<p><code>scanpcap</code> includes a CMake build file. To build, ensure <code>cmake</code> is installed.
 Then do something like this:</p>
 
 <pre><code>$ mkdir build
@@ -117,13 +117,18 @@ Ethernet sources:
       39 c4:85:08:f2:be:f3
       45 dc:9b:9c:1a:24:de
 </code></pre>
+
+<h1>
+<a name="license" class="anchor" href="#license"><span class="octicon octicon-link"></span></a>License</h1>
+
+<p><code>scanpcap</code> is licensed under the Apache 2.0 license.</p>
       </section>
     </div>
 
     <!-- FOOTER  -->
     <div id="footer_wrap" class="outer">
       <footer class="inner">
-        <p class="copyright">Scanpcap maintained by <a href="https://github.com/pontillo">pontillo</a></p>
+        <p class="copyright">scanpcap maintained by <a href="https://github.com/pontillo">pontillo</a></p>
         <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
       </footer>
     </div>
