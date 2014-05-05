@@ -34,19 +34,35 @@
         <p><code>scanpcap</code> is a tool that scans through a packet capture file and prints
 statistics about it.</p>
 
-<p>It takes as an argument the name of a file (in pcapng format), assumes that
-all the packets inside are Ethernet packets, and outputs some basic statistics
-about them, such as:</p>
+<p>It takes as an argument the name of a file (in pcapng format), and outputs
+some basic statistics about them, such as:</p>
 
 <ul>
 <li>Number of packets</li>
+<li>Number of Ethernet packets</li>
+<li>Number of ARP packets</li>
 <li>Maximum packet size</li>
 <li>Minimum packet size</li>
 <li>Start, end, and elapsed time of the capture</li>
 <li>Bytes captured (includingn truncated bytes)</li>
 <li>Overall capture speed (bits captured divided by capture interval in seconds)</li>
-<li>Count per Ethernet source address</li>
-<li>Count per Ethernet destination address</li>
+</ul><p>For Ethernet links, also reports on:</p>
+
+<ul>
+<li>Count of packets per Ethernet source address</li>
+<li>Count of packets per Ethernet destination address</li>
+</ul><h1>
+<a name="see-also" class="anchor" href="#see-also"><span class="octicon octicon-link"></span></a>See Also</h1>
+
+<p>Please note that <code>scanpcap</code> was written as a learning tool. Since it seemed
+useful, I decided to release it.</p>
+
+<p>However, if you are trying to do serious work with packet capturing, it
+might be better to look at a more advanced tool, such as:</p>
+
+<ul>
+<li><a href="http://www.wireshark.oerg/">Wireshark</a></li>
+<li><a href="http://www.bro.org/">Bro Network Security Monitor</a></li>
 </ul><h1>
 <a name="building" class="anchor" href="#building"><span class="octicon octicon-link"></span></a>Building</h1>
 
@@ -64,6 +80,8 @@ $ make
 
 <pre><code>$ ./scanpcap ~/example.pcapng
 73759 packets
+73759 Ethernet packets
+364 ARP packets
 Max size packet: 1514
 Min size packet: 54
 Start time: 1398903401.944119 seconds (Wed Apr 30 17:16:41 2014)
@@ -133,7 +151,17 @@ Ethernet sources:
       </footer>
     </div>
 
-    
+              <script type="text/javascript">
+            var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+            document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+          </script>
+          <script type="text/javascript">
+            try {
+              var pageTracker = _gat._getTracker("UA-50603789-1");
+            pageTracker._trackPageview();
+            } catch(err) {}
+          </script>
+
 
   </body>
 </html>
