@@ -20,6 +20,18 @@ For Ethernet links, also reports on:
  - Count of packets per Ethernet source address
  - Count of packets per Ethernet destination address
 
+See Also
+========
+
+Please note that `scanpcap` was written as a learning tool. Since it seemed
+useful, I decided to release it.
+
+However, if you are trying to do serious work with packet capturing, it
+might be better to look at a more advanced tool, such as:
+
+ - [Wireshark](http://www.wireshark.oerg/)
+ - [Bro Network Security Monitor](http://www.bro.org/)
+
 Building
 ========
 
@@ -36,6 +48,8 @@ Example Output
 
     $ ./scanpcap ~/example.pcapng
     73759 packets
+    73759 Ethernet packets
+    364 ARP packets
     Max size packet: 1514
     Min size packet: 54
     Start time: 1398903401.944119 seconds (Wed Apr 30 17:16:41 2014)
