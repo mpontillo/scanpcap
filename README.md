@@ -4,18 +4,21 @@ scanpcap
 `scanpcap` is a tool that scans through a packet capture file and prints
 statistics about it.
 
-It takes as an argument the name of a file (in pcapng format), assumes that
-all the packets inside are Ethernet packets, and outputs some basic statistics
-about them, such as:
+It takes as an argument the name of a file (in pcapng format), and outputs
+some basic statistics about them, such as:
 
  - Number of packets
+ - Number of Ethernet packets
+ - Number of ARP packets
  - Maximum packet size
  - Minimum packet size
  - Start, end, and elapsed time of the capture
  - Bytes captured (includingn truncated bytes)
  - Overall capture speed (bits captured divided by capture interval in seconds)
- - Count per Ethernet source address
- - Count per Ethernet destination address
+
+For Ethernet links, also reports on:
+ - Count of packets per Ethernet source address
+ - Count of packets per Ethernet destination address
 
 Building
 ========

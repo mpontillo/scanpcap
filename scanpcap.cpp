@@ -28,9 +28,13 @@
 struct ScanContext
 {
     uintmax_t packetCount;
+    uintmax_t ethernetPacketCount;
+    uintmax_t arpPacketCount;
     uintmax_t byteCount;
     unsigned int maxPacketLength;
     unsigned int minPacketLength;
+
+    int isEthernet;
 
     struct timeval startTime;
     struct timeval endTime;
@@ -38,7 +42,7 @@ struct ScanContext
     std::map<std::string, long> packetCountPerSourceMac;
     std::map<std::string, long> packetCountPerDestMac;
 
-    ScanContext() : packetCount(0), byteCount(0), maxPacketLength(0), minPacketLength(0)
+    ScanContext() : packetCount(0), ethernetPacketCount(0), arpPacketCount(0), byteCount(0), maxPacketLength(0), minPacketLength(0), isEthernet(0)
     {
         memset(&this->startTime, 0, sizeof(struct timeval));
         memset(&this->endTime, 0, sizeof(struct timeval));
@@ -71,7 +75,7 @@ static void insertOrIncrementCounter(std::map<std::string, long> &map, std::stri
     }
 }
 
-static void handlePacket(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
+static void handlePossibleEthernetPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
 {
     ScanContext* ctx = (struct ScanContext*) user;
 
@@ -99,15 +103,26 @@ static void handlePacket(u_char *user, const struct pcap_pkthdr *h, const u_char
 
     ctx->byteCount += h->len;
 
-
-    if(h->caplen >= 12)
+    if(ctx->isEthernet)
     {
-        std::string sourceMacString = macToString(bytes+6);
-        std::string destMacString = macToString(bytes);
+        ctx->ethernetPacketCount++;
 
-        insertOrIncrementCounter(ctx->packetCountPerDestMac, destMacString);
-        insertOrIncrementCounter(ctx->packetCountPerSourceMac, sourceMacString);
+        if(h->caplen >= 12)
+        {
+            std::string sourceMacString = macToString(bytes+6);
+            std::string destMacString = macToString(bytes);
+
+            insertOrIncrementCounter(ctx->packetCountPerDestMac, destMacString);
+            insertOrIncrementCounter(ctx->packetCountPerSourceMac, sourceMacString);
+        }
     }
+}
+
+static void handleArpPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
+{
+    ScanContext* ctx = (struct ScanContext*) user;
+
+    ctx->arpPacketCount++;
 }
 
 static void printCountPerAddress(std::map<std::string, long> &macToCount)
@@ -140,6 +155,8 @@ static inline const char* timevalToLocalTime(struct timeval* time)
 static void printStatistics(struct ScanContext* ctx)
 {
     printf("%ju packets\n", ctx->packetCount);
+    printf("%ju Ethernet packets\n", ctx->ethernetPacketCount);
+    printf("%ju ARP packets\n", ctx->arpPacketCount);
     printf("Max size packet: %u\n", ctx->maxPacketLength);
     printf("Min size packet: %u\n", ctx->minPacketLength);
 
@@ -155,6 +172,12 @@ static void printStatistics(struct ScanContext* ctx)
         timevalToLocalTime(&ctx->endTime));
 
     long totalCaptureTime = ctx->endTime.tv_sec - ctx->startTime.tv_sec;
+    if(0 == totalCaptureTime)
+    {
+        // round up to avoid divide by zero
+        totalCaptureTime = 1;
+    }
+
     printf("Total time: %ld seconds (%ld.%01ld minutes)\n",
         totalCaptureTime, totalCaptureTime / 60, totalCaptureTime % 60 * 10 / 60);
 
@@ -167,13 +190,45 @@ static void printStatistics(struct ScanContext* ctx)
     long kilobitsPerSecond = kilobits / totalCaptureTime;
     printf("Overall capture speed: %ld Kbps (%ld Mbps)\n", kilobitsPerSecond, kilobitsPerSecond / 1024);
 
-    printf("\nEthernet destinations:\n");
-    printCountPerAddress(ctx->packetCountPerDestMac);
+    if(!ctx->packetCountPerDestMac.empty())
+    {
+        printf("\nEthernet destinations:\n");
+        printCountPerAddress(ctx->packetCountPerDestMac);
+    }
 
-    printf("\nEthernet sources:\n");
-    printCountPerAddress(ctx->packetCountPerSourceMac);
+    if(!ctx->packetCountPerSourceMac.empty())
+    {
+        printf("\nEthernet sources:\n");
+        printCountPerAddress(ctx->packetCountPerSourceMac);
+    }
 }
 
+static int applyCaptureFilter(pcap_t* pcap, struct bpf_program* bpf, const char* filter)
+{
+    int result = 0;
+
+    if(-1 == pcap_compile(pcap,
+                          bpf,
+                          filter,
+                          1 /* optimize */,
+                          PCAP_NETMASK_UNKNOWN))
+    {
+        fprintf(stderr, "%s\n", pcap_geterr(pcap));
+        result = -1;
+        goto exit;
+    }
+
+
+    if(-1 == pcap_setfilter(pcap, bpf))
+    {
+        fprintf(stderr, "%s\n", pcap_geterr(pcap));
+        result = -1;
+        goto exit;
+    }
+
+exit:
+    return result;
+}
 
 int main(int argc, char* argv[])
 {
@@ -181,6 +236,7 @@ int main(int argc, char* argv[])
     pcap_t* pcap;
     char errbuf[PCAP_ERRBUF_SIZE];
     struct ScanContext ctx;
+    struct bpf_program bpf = { 0 };
 
     if(argc < 2)
     {
@@ -197,8 +253,35 @@ int main(int argc, char* argv[])
         goto exit;
     }
 
-    pcap_loop(pcap, -1, handlePacket, (u_char*) &ctx);
+    if(DLT_EN10MB == pcap_datalink(pcap))
+    {
+        ctx.isEthernet = 1;
+    }
 
+    pcap_loop(pcap, -1, handlePossibleEthernetPacket, (u_char*) &ctx);
+
+    // reopen file and check against a capture filter
+    pcap_close(pcap);
+
+    pcap = pcap_open_offline(argv[1], errbuf);
+    if(NULL == pcap)
+    {
+        fprintf(stderr, "%s\n", errbuf);
+        result = 4;
+        goto exit;
+    }
+
+    if(0 != applyCaptureFilter(pcap, &bpf, "arp"))
+    {
+        // expression could reject all packets and throw an error
+        goto skip_arp;
+    }
+    pcap_loop(pcap, -1, handleArpPacket, (u_char*) &ctx);
+
+skip_arp:
+    pcap_close(pcap);
+
+    // All done with packet processing.
     printStatistics(&ctx);
 
 exit:
