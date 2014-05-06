@@ -144,6 +144,7 @@ static inline const char* timevalToLocalTime(struct timeval* time)
     struct tm* localTime = localtime(&unixTime);
     char* localTimeString = asctime(localTime);
 
+    // note: the result from asctime() has a '\n' at the end, so we truncate it
     if(localTimeString)
     {
         localTimeString[strlen(localTimeString) - 1] = '\0';
@@ -157,11 +158,13 @@ static void printStatistics(struct ScanContext* ctx)
     printf("%ju packets\n", ctx->packetCount);
     printf("%ju Ethernet packets\n", ctx->ethernetPacketCount);
     printf("%ju ARP packets\n", ctx->arpPacketCount);
-    printf("Max size packet: %u\n", ctx->maxPacketLength);
     printf("Min size packet: %u\n", ctx->minPacketLength);
+    printf("Max size packet: %u\n", ctx->maxPacketLength);
 
-    // note: the result from asctime() has a '\n' at the end, so we truncate it
-    char* localTimeString;
+    if(0 != ctx->packetCount)
+    {
+        printf("Average size packet: %ju\n", ctx->byteCount / ctx->packetCount);
+    }
 
     printf("Start time: %ju.%06ju seconds (%s)\n",
         (uintmax_t) ctx->startTime.tv_sec, (uintmax_t) ctx->startTime.tv_usec,
@@ -203,9 +206,17 @@ static void printStatistics(struct ScanContext* ctx)
     }
 }
 
-static int applyCaptureFilter(pcap_t* pcap, struct bpf_program* bpf, const char* filter)
+static int applyCaptureFilter(pcap_t* pcap, const char* filter)
 {
     int result = 0;
+    struct bpf_program* bpf = (struct bpf_program*) calloc(1, sizeof(struct bpf_program));
+
+    if(NULL == bpf)
+    {
+        perror("calloc");
+        result = -1;
+        goto exit;
+    }
 
     if(-1 == pcap_compile(pcap,
                           bpf,
@@ -226,7 +237,14 @@ static int applyCaptureFilter(pcap_t* pcap, struct bpf_program* bpf, const char*
         goto exit;
     }
 
+
 exit:
+    if(NULL != bpf)
+    {
+        pcap_freecode(bpf);
+        free(bpf);
+    }
+
     return result;
 }
 
@@ -236,7 +254,6 @@ int main(int argc, char* argv[])
     pcap_t* pcap;
     char errbuf[PCAP_ERRBUF_SIZE];
     struct ScanContext ctx;
-    struct bpf_program bpf = { 0 };
 
     if(argc < 2)
     {
@@ -271,7 +288,7 @@ int main(int argc, char* argv[])
         goto exit;
     }
 
-    if(0 != applyCaptureFilter(pcap, &bpf, "arp"))
+    if(0 != applyCaptureFilter(pcap, "arp"))
     {
         // expression could reject all packets and throw an error
         goto skip_arp;
