@@ -42,6 +42,8 @@ struct ScanContext
     std::map<std::string, long> packetCountPerSourceMac;
     std::map<std::string, long> packetCountPerDestMac;
 
+    std::map<std::string, std::string> ipToMac;
+
     ScanContext() : packetCount(0), ethernetPacketCount(0), arpPacketCount(0), byteCount(0), maxPacketLength(0), minPacketLength(0), isEthernet(0)
     {
         memset(&this->startTime, 0, sizeof(struct timeval));
@@ -49,10 +51,17 @@ struct ScanContext
     }
 };
 
+#define TABLE_BITMASK 0xF
+#define TABLE_SIZE    (TABLE_BITMASK+1)
+
 static char* macToString(const unsigned char* bytes)
 {
-    static char mac[18];
-    snprintf(mac, 18, "%02x:%02x:%02x:%02x:%02x:%02x",
+    static char mac[TABLE_SIZE][20];
+    static int count = 0;
+
+    count++;
+
+    snprintf(mac[count & TABLE_BITMASK], 20, "%02x:%02x:%02x:%02x:%02x:%02x",
              bytes[0],
              bytes[1],
              bytes[2],
@@ -60,7 +69,23 @@ static char* macToString(const unsigned char* bytes)
              bytes[4],
              bytes[5]);
 
-    return mac;
+    return mac[count & TABLE_BITMASK];
+}
+
+static char* ipv4ToString(const unsigned char* bytes)
+{
+    static char ip[TABLE_SIZE][16];
+    static int count = 0;
+
+    count++;
+
+    snprintf(ip[count & TABLE_BITMASK], 16, "%u.%u.%u.%u",
+             bytes[0],
+             bytes[1],
+             bytes[2],
+             bytes[3]);
+
+    return ip[count & TABLE_BITMASK];
 }
 
 static void insertOrIncrementCounter(std::map<std::string, long> &map, std::string &key)
@@ -73,6 +98,20 @@ static void insertOrIncrementCounter(std::map<std::string, long> &map, std::stri
     {
         map[key] = 1;
     }
+}
+
+static std::string insertOrReplaceMac(std::map<std::string, std::string> &map, std::string &key, std::string &value)
+{
+    std::string tmp = "";
+
+    if(map.find(key) != map.end())
+    {
+        tmp = map[key];
+    }
+
+    map[key] = value;
+
+    return tmp;
 }
 
 static void handlePossibleEthernetPacket(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
@@ -123,6 +162,105 @@ static void handleArpPacket(u_char *user, const struct pcap_pkthdr *h, const u_c
     ScanContext* ctx = (struct ScanContext*) user;
 
     ctx->arpPacketCount++;
+
+    // 14 byte Ethernet header + 28 byte ARP header
+    if(h->caplen >= 42)
+    {
+        // XXX check h->caplen
+        uint16_t hardwareFormat;
+        uint16_t protocolFormat;
+        uint8_t hardwareLen;
+        uint8_t protocolLen;
+        uint16_t operation;
+        uint8_t sourceHardware[6];
+        uint8_t sourceProtocol[4];
+        uint8_t targetHardware[6];
+        uint8_t targetProtocol[4];
+        char* senderMac = NULL;
+        char* senderIp = NULL;
+        char* targetMac = NULL;
+        char* targetIp = NULL;
+
+        // skip Ethernet header
+        // TODO ensure 14-byte Ethernet is the only encapsulation type
+        const u_char* arp_hdr = bytes + 14;
+
+        memcpy(&hardwareFormat, arp_hdr , 2);
+        memcpy(&protocolFormat, arp_hdr + 2, 2);
+        hardwareFormat = htons(hardwareFormat);
+        protocolFormat = htons(protocolFormat);
+
+        hardwareLen = *(arp_hdr + 4);
+        protocolLen = *(arp_hdr + 5);
+
+        if(hardwareLen != 6)
+        {
+            fprintf(stderr, "[!] ARP: Unexpected hardware length\n");
+            return;
+        }
+
+        if(protocolLen != 4)
+        {
+            fprintf(stderr, "[!] ARP: Unexpected protocol length\n");
+            return;
+        }
+
+        if(protocolFormat != 0x800)
+        {
+            fprintf(stderr, "[!] ARP: Unexpected protocol type\n");
+            return;
+        }
+
+        if(hardwareFormat != 1)
+        {
+            fprintf(stderr, "[!] ARP: Unexpected hardware type\n");
+            return;
+        }
+
+        memcpy(&operation, arp_hdr + 6, 2);
+        operation = htons(operation);
+
+        senderMac = macToString(arp_hdr + 8);
+        senderIp = ipv4ToString(arp_hdr + 14);
+        targetMac = macToString(arp_hdr + 18);
+        targetIp = ipv4ToString(arp_hdr + 24);
+
+#if 0
+        fprintf(stderr, "arp caplen=%d hFormat=%d pFormat=%d hLen=%d pLen=%d op=0x%04x sender(%s, %s) target(%s, %s)\n",
+            h->caplen,
+            hardwareFormat,
+            protocolFormat,
+            hardwareLen,
+            protocolLen,
+            operation,
+            senderMac,
+            senderIp,
+            targetMac,
+            targetIp
+        );
+#endif
+
+        // Update ARP information with address of sender
+        std::string senderIpString = senderIp;
+        std::string senderMacString = senderMac;
+
+        // if the sender isn't claiming it owns an IP address, don't update the table
+        if(senderIpString.compare("0.0.0.0"))
+        {
+            std::string previous = insertOrReplaceMac(ctx->ipToMac, senderIpString, senderMacString);
+
+            if(previous.compare("") != 0 && previous.compare(senderIp) == 0)
+            {
+                fprintf(stderr, "[!] %s rebound: was bound to %s\n", senderIp, previous.c_str());
+            }
+        }
+    }
+#if 0
+    else
+    {
+        fprintf(stderr, "[!] Truncated ARP packet\n");
+    }
+#endif
 }
 
 static void printCountPerAddress(std::map<std::string, long> &macToCount)
@@ -135,6 +273,19 @@ static void printCountPerAddress(std::map<std::string, long> &macToCount)
         printf("%8ld %s\n",
             it->second,
             it->first.c_str());
+    }
+}
+
+static void printIpToMac(std::map<std::string, std::string> &ipToMac)
+{
+    std::map<std::string, std::string>::iterator it;
+    for (it = ipToMac.begin();
+         it != ipToMac.end();
+         it++)
+    {
+        printf("    %-16s  %20s\n",
+            it->first.c_str(),
+            it->second.c_str());
     }
 }
 
@@ -204,6 +355,12 @@ static void printStatistics(struct ScanContext* ctx)
         printf("\nEthernet sources:\n");
         printCountPerAddress(ctx->packetCountPerSourceMac);
     }
+
+    if(!ctx->ipToMac.empty())
+    {
+        printf("\nARP table:\n");
+        printIpToMac(ctx->ipToMac);
+    }
 }
 
 static int applyCaptureFilter(pcap_t* pcap, const char* filter)
@@ -224,7 +381,9 @@ static int applyCaptureFilter(pcap_t* pcap, const char* filter)
                           1 /* optimize */,
                           PCAP_NETMASK_UNKNOWN))
     {
-        fprintf(stderr, "%s\n", pcap_geterr(pcap));
+        // TODO: need a -v flag?
+        // this error will trigger for captures with zero ARPs, for example
+        //fprintf(stderr, "%s\n", pcap_geterr(pcap));
         result = -1;
         goto exit;
     }
