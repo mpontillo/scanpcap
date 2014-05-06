@@ -19,6 +19,7 @@
 #include <pcap/pcap.h>
 #include <inttypes.h>
 #include <string.h>
+#include <arpa/inet.h>
 
 #include <string>
 #include <map>
