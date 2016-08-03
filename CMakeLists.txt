@@ -10,3 +10,6 @@ add_executable(
               )
 
 target_link_libraries(scanpcap pcap)
+
+install (TARGETS scanpcap DESTINATION bin)
+
