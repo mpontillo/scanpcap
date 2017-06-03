@@ -1,2 +1,8 @@
 *.swp
-build
+build/
+parts/
+prime/
+*.snap
+*.snap-build
+*.snap-build.*
+stage/

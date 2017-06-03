@@ -1,0 +1,47 @@
+name: scanpcap
+version: 1.0
+summary: A lightweight tool to print out information about a PCAP file.
+description: |
+  scanpcap is a tool that scans through a packet capture file and prints
+  statistics about it.
+  
+  It takes as an argument the name of a file (in pcapng format), and outputs
+  some basic statistics about them, such as:
+  
+  * Number of packets
+  * Number of Ethernet packets
+  * Number of ARP packets
+  * Maximum packet size
+  * Minimum packet size
+  * Start, end, and elapsed time of the capture
+  * Bytes captured (includingn truncated bytes)
+  * Overall capture speed
+    (bits captured divided by capture interval in seconds)
+  
+  For Ethernet links, also reports on:
+  
+  * Count of packets per Ethernet source address
+  * Count of packets per Ethernet destination address
+  * Any ARP mappings observed
+
+# keywords: pcap metadata statistics
+
+grade: stable
+confinement: strict
+
+apps:
+  scanpcap:
+    command: scanpcap
+    plugs:
+     - home
+
+parts:
+  scanpcap:
+    plugin: cmake
+    source: https://github.com/mpontillo/scanpcap
+    source-type: git
+    source-tag: master
+    build-packages:
+     - libpcap0.8-dev
+    stage-packages:
+     - libpcap0.8
