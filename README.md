@@ -1,6 +1,8 @@
 scanpcap
 ========
 
+[![Snap Status](https://build.snapcraft.io/badge/mpontillo/scanpcap.svg)](https://build.snapcraft.io/user/mpontillo/scanpcap)
+
 `scanpcap` is a tool that scans through a packet capture file and prints
 statistics about it.
 
